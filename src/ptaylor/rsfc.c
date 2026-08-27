@@ -60,7 +60,7 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
   int LENTIE = 0;
   float TIERANK;
   int *toP=NULL; // to reset permuts
-  int *sorted=NULL; // hold sorted time course, assume has been turned into int
+  float *sorted=NULL; // hold sorted time course
   int val;
 
   // GSL stuff
@@ -68,8 +68,8 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
   gsl_permutation *P = gsl_permutation_calloc(TDIM); // will hold ranks
 
 
-  toP = (int *)calloc(TDIM,sizeof(int)); 
-  sorted = (int *)calloc(TDIM,sizeof(int)); 
+  toP = (int *)calloc(TDIM,sizeof(int));
+  sorted = (float *)calloc(TDIM,sizeof(float));
 
   if( (toP ==NULL) || (sorted ==NULL) ) { 
     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
@@ -116,7 +116,18 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
       ISTIE = -1; // reset, prob unnec
       LENTIE = 0; // reset
     } // ******* end of tie rank adjustment ***********
-  
+
+  // a tie group reaching the final time point still needs its
+  // average rank and tie-count recorded
+  if( LENTIE > 0 ) {
+    TIERANK = 1.0*ISTIE;
+    TIERANK+= 0.5*(LENTIE-1);
+    NTIE[idx]+= LENTIE*(LENTIE*LENTIE-1);
+    for( mm=0 ; mm<LENTIE ; mm++) {
+      IND[toP[ISTIE+mm]] = TIERANK+1;
+    }
+  }
+
   // FREE
   gsl_vector_free(Y);
   gsl_permutation_free(P);
